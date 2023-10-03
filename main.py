@@ -193,6 +193,20 @@ checkbox2 = ttk.Checkbutton(
     root, text="Remove invalid patterns", variable=checkbox2_var)
 checkbox2.place(x=470, y=60)
 
+# INJECTION AND FETCHING ANDROID PATTERN
+ifLabel = tk.Label(mainFrame, text = "Fetching and injecting pattern")
+ifLabel.place(x = 800, y = 10)
+
+ftButton = tk.Button(mainFrame, text = "FETCH PATTERN", bg= "green", fg = "white")
+ftButton.place(x = 800, y =40)
+ftButton.config(command = grab_gesture_key())
+
+
+injButton = tk.Button(mainFrame, text = "INJECT PATTERN", bg= "red", fg = "black")
+injButton.place(x = 1000, y =40)
+injButton.config(command= startBruteforce())
+
+
 
 exists = False  # If a user had generated patterns before
 
@@ -277,3 +291,4 @@ def generate_button_click():
 
 generatePatternsBtn.config(command=generate_button_click)
 # Start the Tkinter event loop
+tk.mainloop()
