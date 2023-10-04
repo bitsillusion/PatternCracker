@@ -199,13 +199,30 @@ ifLabel.place(x = 800, y = 10)
 
 ftButton = tk.Button(mainFrame, text = "FETCH PATTERN", bg= "green", fg = "white")
 ftButton.place(x = 800, y =40)
-ftButton.config(command = grab_gesture_key())
+ftButton.config(command = grab_gesture_key)
 
 
-injButton = tk.Button(mainFrame, text = "INJECT PATTERN", bg= "red", fg = "black")
+injButton = tk.Button(mainFrame, text = "INJECT PATTERNS", bg= "red", fg = "black")
 injButton.place(x = 1000, y =40)
 injButton.config(command= startBruteforce())
 
+def decodeHash():
+    """
+        Decode input hash and visualize it as a pattern
+    """
+    hash = fhEntry.get()
+    pattern = mapPermutation(searchHash(hash))
+    drawPatterns(convert_to_tuple(pattern))
+
+    
+# Fetch Hash from the clipboard or write it
+fhLabel = tk.Label(mainFrame, text = "Decode a single Hash")
+fhLabel.place(x = 800, y = 80)
+fhEntry = tk.Entry(mainFrame)
+fhEntry.place(x = 800, y = 100)
+decodeButton = tk.Button(mainFrame, text = "DECODE HASH", bg = "green", fg ="white")
+decodeButton.place(x = 1000, y= 90)
+decodeButton.config(command = decodeHash)
 
 
 exists = False  # If a user had generated patterns before
@@ -216,37 +233,15 @@ def getExists():
     global exists
     return exists
 
-
-def generate_button_click():
+def drawPatterns(patterns):
     """
-        Handles events and logic when the GENERATE button is clicked
+        Draws pattern on the canvas
     """
     global exists, patternsCanvas, frame, scrollbar, entryInfocus
     if getExists():
         patternsCanvas.destroy()
         frame.destroy()
         scrollbar.destroy()
-
-    # Get selected points on the patternUI or get from the patternEntry
-    if get_entryInFocus():
-        patternString = patternEntry.get()
-        pattern = [int(num) for num in patternString]
-    else:
-        pattern = clickedCircles
-
-    # Generate pattern based on fine tuning options
-    if checkbox1_var.get() and checkbox2_var.get():
-        patterns = convert_to_tuple(removePointsNotTouchingCross(
-            remove_invalid_combinations(generate_combinations(pattern))))
-    elif checkbox1_var.get():
-        patterns = convert_to_tuple(
-            removePointsNotTouchingCross(generate_combinations(pattern)))
-
-    elif checkbox2_var.get():
-        patterns = convert_to_tuple(
-            remove_invalid_combinations(generate_combinations(pattern)))
-    else:
-        patterns = convert_to_tuple(generate_combinations(pattern))
 
     patternsCanvas = tk.Canvas(
         mainFrame, height=win_height-320, width=1350, bg="grey")
@@ -287,6 +282,38 @@ def generate_button_click():
 
     exists = True
     return
+
+
+
+def generate_button_click():
+    """
+        Handles events and logic when the GENERATE button is clicked
+    """
+
+    # Get selected points on the patternUI or get from the patternEntry
+    if get_entryInFocus():
+        patternString = patternEntry.get()
+        pattern = [int(num) for num in patternString]
+    else:
+        pattern = clickedCircles
+
+    # Generate pattern based on fine tuning options
+    if checkbox1_var.get() and checkbox2_var.get():
+        patterns = convert_to_tuple(removePointsNotTouchingCross(
+            remove_invalid_combinations(generate_combinations(pattern))))
+    elif checkbox1_var.get():
+        patterns = convert_to_tuple(
+            removePointsNotTouchingCross(generate_combinations(pattern)))
+
+    elif checkbox2_var.get():
+        patterns = convert_to_tuple(
+            remove_invalid_combinations(generate_combinations(pattern)))
+    else:
+        patterns = convert_to_tuple(generate_combinations(pattern))
+
+    drawPatterns(patterns)
+    
+
 
 
 generatePatternsBtn.config(command=generate_button_click)

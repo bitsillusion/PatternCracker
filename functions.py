@@ -164,7 +164,6 @@ def remove_invalid_combinations(combinations):
         valid = True
         for n in range(0, len(comb) - 1):
             if mapping.get((comb[n], comb[n+1])):
-                print("Extreme Points: ", comb[n], " and ", comb[n+1])
                 if check_previous(n, mapping[(comb[n], comb[n+1])], comb):
                     valid = True
                 else:
@@ -249,7 +248,7 @@ def mapPermutation(perm):
     x=[]
     y = [int(x)for x in mappedPerm]
     x.append(y)
-    return ''.join(map(str, remove_invalid_combinations(x)))
+    return remove_invalid_combinations(x)
     
  
 
@@ -286,9 +285,10 @@ def createPatternsHashFile():
         print("An error occurred: ", str(e))
                 
 
-def visualizeHash(target_hash):
+def searchHash(target_hash):
     """
         First obtain the corresponding pattern sequence from the rainbow tables of all hash sequences
+        Returns a pattern sequence
     """
     pattern_hash_dict = {}
     try:
@@ -320,6 +320,3 @@ def startBruteforce():
     """
         Start injecting the pattern in the target android device
     """
-
-
-print(remove_invalid_combinations([[4,1,7,4]]))
